@@ -4,6 +4,7 @@ import json
 import os
 from typing import List, Optional
 
+import inquirer
 import openai
 import requests
 from loguru import logger
@@ -200,8 +201,11 @@ def write_csv(companies, filename="companies.csv"):
         "nature_juridique",
     ]
 
+    # Ensure the directory "data_output" exists
+    os.makedirs("data_output", exist_ok=True)
+
     # Open the CSV file for writing
-    with open(filename, "w", newline="", encoding="utf-8") as csvfile:
+    with open(os.path.join("data_output", filename), "w", newline="", encoding="utf-8") as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=headers)
         writer.writeheader()
 
@@ -245,10 +249,22 @@ def write_csv(companies, filename="companies.csv"):
 
 
 if __name__ == "__main__":
-    naf = "43.99A"
-    loc = "35"
+    questions = [
+        inquirer.Text("naf", message="Enter NAF code (e.g., 43.99A)"),
+        inquirer.Text("departement", message="Enter departement code (e.g., 75)"),
+        inquirer.Confirm(
+            "allow_entrepreneur_individuel",
+            message="Include Entrepreneur Individuel?",
+            default=False,
+        ),
+    ]
+    answers = inquirer.prompt(questions)
+    naf = answers["naf"]
+    departement = answers["departement"]
     data = get_companies_listing(
-        naf, departement=loc, allow_entrepreneur_individuel=False
+        naf,
+        departement=departement,
+        allow_entrepreneur_individuel=answers["allow_entrepreneur_individuel"],
     )
     cleaned_data = results_cleanup_and_enrich(data["results"])
-    write_csv(cleaned_data, filename=f"companies_{naf}_{loc}.csv")
+    write_csv(cleaned_data, filename=f"companies_{naf}_{departement}.csv")
