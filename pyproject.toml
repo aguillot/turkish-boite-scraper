@@ -1,21 +1,13 @@
 [project]
 name = "turkish-boite-scraper"
 version = "0.1.0"
-description = ""
-authors = [
-    {name = "Adam Guillot",email = "adam.guillot@gmail.com"}
-]
+description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.12,<4.0"
+requires-python = ">=3.12"
 dependencies = [
-    "requests (>=2.32.4,<3.0.0)",
-    "loguru (>=0.7.3,<0.8.0)",
-    "openai (>=1.106.1,<2.0.0)",
-    "pydantic (>=2.11.7,<3.0.0)",
-    "inquirer (>=3.4.1,<4.0.0)"
+    "inquirer>=3.4.1",
+    "loguru>=0.7.3",
+    "openai>=1.107.0",
+    "pydantic>=2.11.7",
+    "requests>=2.32.5",
 ]
-
-
-[build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
-build-backend = "poetry.core.masonry.api"
