@@ -2,6 +2,7 @@ import csv
 import hashlib
 import json
 import os
+from datetime import datetime
 from typing import List, Optional
 
 import inquirer
@@ -137,7 +138,7 @@ def identify_turkish_names(names) -> List[OrigineTurc]:
     return response.output_parsed.results
 
 
-def results_cleanup_and_enrich(companies):
+def results_cleanup_and_enrich(companies, check_turkish_names=False):
     cleaned = []
     all_dirigeants = []
     for company in companies:
@@ -163,20 +164,28 @@ def results_cleanup_and_enrich(companies):
         company["dirigeants"] = dirigeants
         cleaned.append(company)
 
-    try:
-        turkish_origins = identify_turkish_names(all_dirigeants)
-        for company in cleaned:
-            for dirigeant in company.get("dirigeants", []):
-                match = next(
-                    (item for item in turkish_origins if item.id == dirigeant["id"]),
-                    None,
-                )
-                if match:
-                    dirigeant["origine_turque"] = match.origine_turque
-                else:
-                    dirigeant["origine_turque"] = False
-    except Exception as e:
-        logger.error(f"Error identifying Turkish names: {e}")
+    if check_turkish_names:
+        try:
+            if not all_dirigeants:
+                logger.info("No dirigeants found to check for Turkish names.")
+                return cleaned
+            turkish_origins = identify_turkish_names(all_dirigeants)
+            for company in cleaned:
+                for dirigeant in company.get("dirigeants", []):
+                    match = next(
+                        (
+                            item
+                            for item in turkish_origins
+                            if item.id == dirigeant["id"]
+                        ),
+                        None,
+                    )
+                    if match:
+                        dirigeant["origine_turque"] = match.origine_turque
+                    else:
+                        dirigeant["origine_turque"] = False
+        except Exception as e:
+            logger.error(f"Error identifying Turkish names: {e}")
     return cleaned
 
 
@@ -184,15 +193,12 @@ def write_csv(companies, filename="companies.csv"):
     headers = [
         "dirigeant_nom",
         "dirigeant_prenoms",
-        "dirigeant_annee_de_naissance",
         "dirigeant_date_de_naissance",
         "dirigeant_qualite",
         "dirigeant_origine_turque",
         "dirigeant_nationalite",
-        "dirigeant_type_dirigeant",
         "siren",
         "nom_complet",
-        "nom_raison_sociale",
         "activite_principale",
         "adresse",
         "code_postal",
@@ -215,7 +221,6 @@ def write_csv(companies, filename="companies.csv"):
             company_data = {
                 "siren": company.get("siren", ""),
                 "nom_complet": company.get("nom_complet", ""),
-                "nom_raison_sociale": company.get("nom_raison_sociale", ""),
                 "activite_principale": company.get("activite_principale", ""),
                 "adresse": company.get("adresse", ""),
                 "code_postal": company.get("code_postal", ""),
@@ -230,16 +235,11 @@ def write_csv(companies, filename="companies.csv"):
                 dirigeant_data = {
                     "dirigeant_nom": dirigeant.get("nom", ""),
                     "dirigeant_prenoms": dirigeant.get("prenoms", ""),
-                    "dirigeant_annee_de_naissance": dirigeant.get(
-                        "annee_de_naissance", ""
-                    ),
                     "dirigeant_date_de_naissance": dirigeant.get(
                         "date_de_naissance", ""
                     ),
                     "dirigeant_qualite": dirigeant.get("qualite", ""),
                     "dirigeant_origine_turque": dirigeant.get("origine_turque", False),
-                    "dirigeant_nationalite": dirigeant.get("nationalite", ""),
-                    "dirigeant_type_dirigeant": dirigeant.get("type_dirigeant", ""),
                 }
 
                 # Combine company and director data
@@ -257,6 +257,11 @@ if __name__ == "__main__":
             message="Include Entrepreneur Individuel?",
             default=False,
         ),
+        inquirer.Confirm(
+            "check_turkish_names",
+            message="Check for Turkish names? (requires OPENAI_API_KEY)",
+            default=False,
+        ),
     ]
     answers = inquirer.prompt(questions)
     naf = answers["naf"]
@@ -266,5 +271,8 @@ if __name__ == "__main__":
         departement=departement,
         allow_entrepreneur_individuel=answers["allow_entrepreneur_individuel"],
     )
-    cleaned_data = results_cleanup_and_enrich(data["results"])
-    write_csv(cleaned_data, filename=f"companies_{naf}_{departement}.csv")
+    cleaned_data = results_cleanup_and_enrich(
+        data["results"], check_turkish_names=answers["check_turkish_names"]
+    )
+    output_filename = f"companies_{naf}_{departement}_{datetime.now().strftime('%Y%m%d%H%M%S')}.csv"
+    write_csv(cleaned_data, filename=output_filename)
