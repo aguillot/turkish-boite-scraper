@@ -21,6 +21,7 @@ FILTRE_QUALITE = [
     "Commissaire aux comptes titulaire",
     "Commissaire aux comptes suppléant",
 ]
+CREATION_MIN_YEAR = 2024
 
 SYSTEM_PROMPT = """
 Met a jour ma liste de noms et indique si ils sont d'origine turque ou non.
@@ -140,13 +141,21 @@ def identify_turkish_names(names) -> List[OrigineTurc]:
     return response.output_parsed.results
 
 
-def results_cleanup_and_enrich(companies, check_turkish_names=False):
+def results_cleanup_and_enrich(
+    companies, check_turkish_names=False, filter_min_year=False
+):
     cleaned = []
     all_dirigeants = []
     for company in companies:
         if "error" in company:
             cleaned.append(company)
             continue
+        if filter_min_year:
+            date_creation = datetime.strptime(
+                company.get("date_creation", "1900-01-01"), "%Y-%m-%d"
+            )
+            if date_creation.year < CREATION_MIN_YEAR:
+                continue
         dirigeants = [
             d
             for d in company.get("dirigeants", [])
@@ -272,6 +281,11 @@ if __name__ == "__main__":
             message="Check for Turkish names? (requires OPENAI_API_KEY)",
             default=False,
         ),
+        inquirer.Confirm(
+            "filter_min_year",
+            message=f"Filter companies created before {CREATION_MIN_YEAR}?",
+            default=True,
+        ),
     ]
     answers = inquirer.prompt(questions)
     naf = answers["naf"]
@@ -282,9 +296,11 @@ if __name__ == "__main__":
         allow_entrepreneur_individuel=answers["allow_entrepreneur_individuel"],
     )
     cleaned_data = results_cleanup_and_enrich(
-        data["results"], check_turkish_names=answers["check_turkish_names"]
+        data["results"],
+        check_turkish_names=answers["check_turkish_names"],
+        filter_min_year=answers["filter_min_year"],
     )
     output_filename = (
-        f"companies_{naf}_{departement}_{datetime.now().strftime('%Y%m%d%H%M%S')}.csv"
+        f"{datetime.now().strftime('%Y%m%d%H%M%S')}_companies_{naf}_{departement}.csv"
     )
     write_csv(cleaned_data, filename=output_filename)

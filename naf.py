@@ -1,10 +1,12 @@
 import pandas as pd
 from loguru import logger
 
+NAF_N5_FILE = "naf2008_liste_n5.xls"
+
 
 def get_inquirer_formatted_naf_codes():
     try:
-        df = pd.read_csv("naf2008_liste_n5.csv", sep=";")
+        df = pd.read_excel(NAF_N5_FILE)
         df = df[df["include"] == "o"]
 
         logger.info(f"Loaded {len(df)} NAF codes")
