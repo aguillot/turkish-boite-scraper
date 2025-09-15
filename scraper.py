@@ -11,6 +11,8 @@ import requests
 from loguru import logger
 from pydantic import BaseModel
 
+from naf import get_inquirer_formatted_naf_codes
+
 BASE_URL = "https://recherche-entreprises.api.gouv.fr/search"
 NATURE_JURIDIQUE = "5499,5410,5710"  # SARL, SAS
 PER_PAGE = 25
@@ -211,7 +213,9 @@ def write_csv(companies, filename="companies.csv"):
     os.makedirs("data_output", exist_ok=True)
 
     # Open the CSV file for writing
-    with open(os.path.join("data_output", filename), "w", newline="", encoding="utf-8") as csvfile:
+    with open(
+        os.path.join("data_output", filename), "w", newline="", encoding="utf-8"
+    ) as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=headers)
         writer.writeheader()
 
@@ -249,8 +253,14 @@ def write_csv(companies, filename="companies.csv"):
 
 
 if __name__ == "__main__":
+    naf_choices = get_inquirer_formatted_naf_codes()
+
     questions = [
-        inquirer.Text("naf", message="Enter NAF code (e.g., 43.99A)"),
+        inquirer.List(
+            "naf",
+            message="Select NAF code",
+            choices=naf_choices,
+        ),
         inquirer.Text("departement", message="Enter departement code (e.g., 75)"),
         inquirer.Confirm(
             "allow_entrepreneur_individuel",
@@ -274,5 +284,7 @@ if __name__ == "__main__":
     cleaned_data = results_cleanup_and_enrich(
         data["results"], check_turkish_names=answers["check_turkish_names"]
     )
-    output_filename = f"companies_{naf}_{departement}_{datetime.now().strftime('%Y%m%d%H%M%S')}.csv"
+    output_filename = (
+        f"companies_{naf}_{departement}_{datetime.now().strftime('%Y%m%d%H%M%S')}.csv"
+    )
     write_csv(cleaned_data, filename=output_filename)
