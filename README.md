@@ -1,7 +1,7 @@
-# Turkish Boîte Scraper
+# Turkish Boite Scraper
 
 Scraper interactif pour récupérer des entreprises françaises par code NAF et
-département, avec option d’identification des noms d’origine turque.
+departement, avec option d’identification des noms d’origine turque.
 
 ## Prérequis
 
