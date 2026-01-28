@@ -1,4 +1,4 @@
-# Turkish Boite Scraper
+# Turkish Boîte Scraper
 
 Scraper interactif pour récupérer des entreprises françaises par code NAF et
 département, avec option d’identification des noms d’origine turque.
@@ -14,7 +14,7 @@ département, avec option d’identification des noms d’origine turque.
 Avec `uv` (recommandé) :
 
 ```bash
-uv install
+uv sync
 ```
 
 Ou avec `pip` :
